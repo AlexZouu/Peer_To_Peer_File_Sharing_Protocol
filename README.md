@@ -14,7 +14,6 @@ List of things I want to fix:
 - Somehow deal with files of the same name
 - Deal with files that have been modified (tracker could store a hash of the file?)
 - Better folder structure
-- The tracker only sometimes returns a status. I should've standardized it so that everything sends a status and the API handle's errors
 - The program should stop you from assigning the same folder to multiple peers
 - Much much more
 

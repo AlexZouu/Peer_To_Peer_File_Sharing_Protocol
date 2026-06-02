@@ -41,8 +41,8 @@ def parseArgs():
 
   port = args.port
 
-  if port < 50000 or port % 100 != 0:   # Handle if the port is not valid
-    print('ERROR: Port number must be at least 50000 and must be in intervals of 100')
+  if port < 2000 or port > 49000 or port % 100 != 0:   # Handle if the port is not valid
+    print('ERROR: Port number must be at least 2000, less than 49000, and must be in intervals of 100')
     return None, None
 
   return args.port, args.nickname.lower()

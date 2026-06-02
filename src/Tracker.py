@@ -4,7 +4,7 @@ from RDT.ReliableDataTransfer import rdtSend, rdtReceive
 
 
 IP = '127.0.0.1'              # IP address of the server (same machine)
-TRACKER_PORT = 49999          # Port of the tracking program
+TRACKER_PORT = 1025          # Port of the tracking program
 
 
 def sendResponse(peerPort, packet):

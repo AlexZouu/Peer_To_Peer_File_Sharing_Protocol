@@ -6,7 +6,7 @@ import json
 from RDT.ReliableDataTransfer import rdtSend, rdtReceive
 
 
-TRACKER_PORT = 49999          # Port of the tracking program
+TRACKER_PORT = 1025          # Port of the tracking program
 
 
 def sendPacket(sPort, dPort, packet):

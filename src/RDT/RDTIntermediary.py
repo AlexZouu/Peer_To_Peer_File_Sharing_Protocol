@@ -7,7 +7,7 @@ import socket
 BAD_CHANCE = 0.1            # The chance that something bad will happen (drop, corrupt, reorder)
 REORDER_CHANCE = 0.3        # The chance that a reordered packet will be sent instead of a packet for forwarding
 IP = '127.0.0.1'            # IP address of the server (same machine)
-INTERMEDIARY_PORT = 49998   # Port of the intermediary program
+INTERMEDIARY_PORT = 1024   # Port of the intermediary program
 
 
 def printT(message):

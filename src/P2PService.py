@@ -8,7 +8,7 @@ from API.PeerAPI import GET_chunk, GET_fileLen
 from API.TrackerAPI import PUT_file
 
 
-TRACKER_PORT = 49999          # Port of the tracking program
+TRACKER_PORT = 1025          # Port of the tracking program
 
 
 def requestChunk(lock, tempPort, dPort, filename, chunkSize, fileLen, index, messages):

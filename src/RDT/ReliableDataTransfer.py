@@ -11,7 +11,7 @@ import time
 
 _CWND_SIZE = 10               # At most this many packets "in the air" at a time
 _IP = '127.0.0.1'             # IP address of the server (same machine)
-_INTERMEDIARY_PORT = 49998    # Port of the intermediary program
+_INTERMEDIARY_PORT = 1024     # Port of the intermediary program
 _TIMEOUT = 0.01               # Packet will be resent if an ACK isn't received in this many seconds
 _CHUNK_SIZE = 2000            # The message will be chunked into bytes of this size
 _RESET_TIME = _TIMEOUT * 100  # The number of seconds before the receiver will end after getting all packets

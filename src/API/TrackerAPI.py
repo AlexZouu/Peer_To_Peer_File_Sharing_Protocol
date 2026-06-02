@@ -6,7 +6,7 @@ from pathlib import Path
 import json
 
 
-TRACKER_PORT = 49999          # Port of the tracking program
+TRACKER_PORT = 1025          # Port of the tracking program
 
 
 def sendPacket(sPort, packet):

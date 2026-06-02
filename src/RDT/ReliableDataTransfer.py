@@ -9,10 +9,10 @@ import time
 # ============================================================================================================
 
 
-_CWND_SIZE = 10               # At most this many packets "in the air" at a time
+_STARTING_CWND_SIZE = 10      # The CWND size starts at this value
 _IP = '127.0.0.1'             # IP address of the server (same machine)
 _INTERMEDIARY_PORT = 1024     # Port of the intermediary program
-_TIMEOUT = 0.01               # Packet will be resent if an ACK isn't received in this many seconds
+_TIMEOUT = 0.05               # Packet will be resent if an ACK isn't received in this many seconds
 _CHUNK_SIZE = 2000            # The message will be chunked into bytes of this size
 _RESET_TIME = _TIMEOUT * 100  # The number of seconds before the receiver will end after getting all packets
 _HEADER_SIZE = 14             # The size of the packet header in bytes
@@ -35,7 +35,7 @@ def _printT(message):
   Args:
     message (str): The message to print
   """
-  if not debugMode: return
+  if debugMode is False: return
 
   currentTime = datetime.datetime.now().strftime("%H:%M:%S")
   print(f'{currentTime}\t|\t{message}')
@@ -201,7 +201,7 @@ def _processPackets(bufferedPackets, bufferedChunks, numPackets):
 # ============================================================================================================
 
 
-def rdtSend(sPort, dPort, id, message, printDebug=False):
+def rdtSend(sPort, dPort, id, message):
   """
   Sends the packets over rdt
 
@@ -212,9 +212,6 @@ def rdtSend(sPort, dPort, id, message, printDebug=False):
     message (str): The message to send
     printDebug (bool): If this should print debug messages
   """
-  global debugMode    # Get the global variable debugMode
-  debugMode = printDebug    # Set the global variable to the printDebug parameter
-
   sock = None   # Socket
 
   try:    # Try to set the socket
@@ -229,15 +226,18 @@ def rdtSend(sPort, dPort, id, message, printDebug=False):
   numPackets = math.ceil(len(message) / _CHUNK_SIZE)    # Determine the total number of chunks to send
   messages = _chunkMessage(message)   # Chunk the message
   cwndStart = 0   # The start of the congestion window
+  cwndSize = _STARTING_CWND_SIZE    # The size of the congestion window
   packetsInAir = []   # Which packets are in the air (sent but not acked)
   seq = 0   # Which packet we're on
   nextSeq = 0   # Which one will be sent next
   prevAck = -1    # The previous ack
   dupAcks = 0   # The number of duplicate acks
+  fastRecovery = False
   timeoutStart = time.time()    # Start the timeout timer
 
   while prevAck < numPackets - 1:
-    if len(packetsInAir) <= _CWND_SIZE and nextSeq < numPackets:   # Make sure there aren't too many packets in the air
+    if len(packetsInAir) <= cwndSize and nextSeq < numPackets:   # Make sure there aren't too many packets in the air
+      print(cwndSize)
       seq = nextSeq
       _printT(f'Sending packet {seq}')
       packet = _createPacket(sPort, dPort, seq, id, numPackets, messages[seq])    # Create a packet
@@ -257,37 +257,43 @@ def rdtSend(sPort, dPort, id, message, printDebug=False):
       ack = int.from_bytes(datagram[8:10])    # Get the ack number
 
       if prevAck == ack:    # If it's the same as the last ack
+        if fastRecovery:
+          cwndSize += 1
+          continue
+
+        cwndSize += 3
         dupAcks += 1    # Increment dupAcks
         _printT(f'{dupAcks} duplicate ACK(s) {ack} received')
+        
         if dupAcks >= 3:    # If the number of duplicate acks is >= 3
-          if prevAck == 0: seq = 0
-          else: seq = prevAck + 1   # Set the seq number to the first unacked packet
-          _printT(f'Fast recovery initiated for packet {seq}')
-          nextSeq = seq
+          _printT(f'Fast recovery initiated for packet {prevAck + 1}')
+          fastRecovery = True
           timeoutStart = time.time()    # Restart the timeout
+          if cwndSize > 20: cwndSize = cwndSize // 2
+          else: cwndSize = _STARTING_CWND_SIZE
           dupAcks = 0   # Reset the duplicate acks
-          packetsInAir = []
+          packet = _createPacket(sPort, dPort, prevAck + 1, id, numPackets, messages[prevAck + 1])    # Create the lost packet
+          sock.sendto(packet, (_IP, _INTERMEDIARY_PORT))    # Send the lost packet to the intermediary
       elif ack > prevAck:   # If ack is greater than last ack
         _printT(f'Received ACK {ack}')
         timeoutStart = time.time()    # Restart the timeout
+        fastRecovery = False
         prevAck = ack   # Set prev ack to this ack
         dupAcks = 0     # Reset number of duplicate acks
-
-      if ack >= cwndStart:    # If the ack is greater than the start of the congestion window
+        cwndSize += 1
         cwndStart = ack + 1   # Set the cwnd to the next unacked packet
-        for packetSeq in packetsInAir:    # For each packet in the packets in air
-          if packetSeq <= ack: packetsInAir.remove(packetSeq)   # If the seq <= ack, it has been received, so remove from packets in air
-        timeoutStart = time.time()    # Reset the timeout
+        packetsInAir = [pktSeq for pktSeq in packetsInAir if pktSeq > ack]    # Get rid of packets with seq numbers below the ack
       
-      if ack > seq:   # If the ack is greater than the seq number, set seq to first unacked packet
-        seq = ack + 1
-        nextSeq = seq
+        if ack >= seq:   # If the ack is greater than the seq number, set seq to first unacked packet
+          seq = ack + 1
+          nextSeq = seq
     except Exception: pass   # No data was ready, so we ignore it
 
     # If a timeout occurs
     if time.time() - timeoutStart > _TIMEOUT: 
       _printT(f'Timeout with CWND at {cwndStart}')
       timeoutStart = time.time()    # Reset everything
+      cwndSize = _STARTING_CWND_SIZE
       seq = cwndStart
       nextSeq = cwndStart
       packetsInAir = []
@@ -302,7 +308,7 @@ def rdtSend(sPort, dPort, id, message, printDebug=False):
 # ============================================================================================================
 
 
-def rdtReceive(id, dPort, sPort=None, timeout=-1, printDebug=False):
+def rdtReceive(id, dPort, sPort=None, timeout=-1):
   """
   Receive and handle the packets that come into the client
 
@@ -317,9 +323,6 @@ def rdtReceive(id, dPort, sPort=None, timeout=-1, printDebug=False):
     (int): The port number of the sender
     (str): The message
   """
-  global debugMode    # Get the global var
-  debugMode = printDebug    # Set whether the function should print debug messages
-
   sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)   # Create the socket
   sock.bind((_IP, dPort))
   sock.setblocking(False)
@@ -363,7 +366,7 @@ def rdtReceive(id, dPort, sPort=None, timeout=-1, printDebug=False):
         while True:
           if seq in bufferedPackets: seq += 1   # Increase the sequence number if it exists in buffered packets
           else:   # If it doesn't exist
-            cwndStart = seq   # Set cwnd to seq (If we're waiting on packet 3, and packets 4, 5, and 6 are buffered, this will set the cwnd to 7 once packet 3 is received)
+            cwndStart = seq   # Set cwnd to seq (If we're waiting on packet 3, and packets 4, 5, and 6 are buffered, this will set the cwnd to 7 once packet 3 is received, even if packet 8 exists)
             break
 
       packet = _createPacket(dPort, sPort, max(0, cwndStart - 1), id, numPackets, None)   # Create a packet

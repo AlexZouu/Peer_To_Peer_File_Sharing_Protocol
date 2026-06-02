@@ -71,7 +71,7 @@ def getPeersWithFile(peerTable, peerPort, message):
 
   if len(peerList) == 0:
     packet['status'] = 'ERROR'
-    packet['errMsg'] = 'No files are available currently'   # If no peer has the file, send an error
+    packet['errMsg'] = 'That file is not currently available'   # If no peer has the file, send an error
     sendResponse(peerPort, packet)
     print(f'Peer {peerPort} requested a list of peers with {filename} but it doesn\'t exist!')
   else:

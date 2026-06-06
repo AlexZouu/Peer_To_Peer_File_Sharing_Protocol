@@ -169,4 +169,4 @@ def main():
   peerToPeer(port, nickname)    # Start the peer to peer service
 
 
-main()
+if __name__ == '__main__': main()

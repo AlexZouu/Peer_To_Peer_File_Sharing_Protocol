@@ -121,4 +121,4 @@ def main():
   forward(drop, corrupt, reorder)
 
 
-main()
+if __name__ == '__main__': main()

@@ -222,4 +222,4 @@ def main():
   tracker()
 
 
-main()
+if __name__ == '__main__': main()

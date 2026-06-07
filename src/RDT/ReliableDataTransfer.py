@@ -237,7 +237,6 @@ def rdtSend(sPort, dPort, id, message):
 
   while prevAck < numPackets - 1:
     if len(packetsInAir) <= cwndSize and nextSeq < numPackets:   # Make sure there aren't too many packets in the air
-      print(cwndSize)
       seq = nextSeq
       _printT(f'Sending packet {seq}')
       packet = _createPacket(sPort, dPort, seq, id, numPackets, messages[seq])    # Create a packet

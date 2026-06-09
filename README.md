@@ -6,7 +6,6 @@ I needed to stop at some point, and this state is what I decided.\
 There are things I could fix, but I would be working on this forever if that was the case.
 
 List of things I want to fix:
-- The packets are being sent as strings split by a splitter string. Why I would do this? Who knows. It should be a JSONified dict. If I saw that in someone else's code, I'd be upset. 
 - If a peer is forcefully shut or suddenly dropped, the entire system breaks. The tracker will assume the peer is still up, and continue to forward other peers to the lost peer. 
 - To fix the aformentioned issue, the tracker should send a heartbeat periodically to each peer. If there's no response, drop the peer
 - Also, if a peer fails to download a chunk after a specified time, it should attempt to download it from a different peer
